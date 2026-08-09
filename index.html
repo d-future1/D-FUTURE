@@ -67,7 +67,7 @@
                     دخول المنصة
                 </button>
             </form>
-            <div id="activationAlert" class="hidden mt-4 p-3 rounded-xl text-xs text-center"></div>
+            <div id="activationAlert" class="hidden mt-4 p-3 rounded-xl text-xs text-center break-words"></div>
         </section>
 
         <!-- 2. MAIN DASHBOARD SCREEN (HIDDEN BY DEFAULT) -->
@@ -114,16 +114,13 @@
 
     <!-- Supabase Connection & App Logic -->
     <script>
-        // CONFIGURATION: Integrated direct credentials
         const SUPABASE_URL = 'https://buzhgwizndbczmztfsp.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emhnd2loem5kYmN6bXp0ZnNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyOTkwNjksImV4cCI6MjEwMTg3NTA2OX0.1tdXOa9wamfW3hBwdaTTpNK9U1g5G4Mqf2hwAe1Ojec';
 
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // App State
         let currentUser = null;
 
-        // Initialize App
         window.addEventListener('DOMContentLoaded', async () => {
             const savedCode = localStorage.getItem('dfuture_student_code');
             if (savedCode) {
@@ -131,10 +128,9 @@
             }
         });
 
-        // Activation / Login Function
         async function handleActivation(e) {
             e.preventDefault();
-            const codeInput = document.getElementById('activationCodeInput').value.trim();
+            const rawCode = document.getElementById('activationCodeInput').value;
             const btn = document.getElementById('btnActivate');
             const alert = document.getElementById('activationAlert');
 
@@ -142,7 +138,7 @@
             btn.innerText = 'جاري التحقق...';
             alert.classList.add('hidden');
 
-            await verifyAndLogin(codeInput, false);
+            await verifyAndLogin(rawCode, false);
 
             btn.disabled = false;
             btn.innerText = 'دخول المنصة';
@@ -150,19 +146,25 @@
 
         async function verifyAndLogin(code, isAuto) {
             const alert = document.getElementById('activationAlert');
+            const cleanCode = code.trim().toUpperCase(); // تحويل التلقائي للأحرف الكبيرة
+
             try {
                 const { data, error } = await db
                     .from('subscription_codes')
                     .select('*')
-                    .eq('code', code)
-                    .single();
+                    .eq('code', cleanCode)
+                    .maybeSingle();
 
-                if (error || !data) {
-                    throw new Error('رمز التفعيل غير صحيح أو غير مفعل.');
+                if (error) {
+                    throw new Error('Supabase Error: ' + error.message);
+                }
+
+                if (!data) {
+                    throw new Error('رمز التفعيل غير صحيح أو غير موجود (' + cleanCode + ')');
                 }
 
                 currentUser = data;
-                localStorage.setItem('dfuture_student_code', code);
+                localStorage.setItem('dfuture_student_code', cleanCode);
 
                 // Update UI
                 document.getElementById('activationScreen').classList.add('hidden');
@@ -171,20 +173,18 @@
                 document.getElementById('studentNameDisplay').innerText = data.student_name || 'طالب مفعل';
                 document.getElementById('watermark').classList.remove('hidden');
 
-                // Load Data
                 loadSubjects();
 
             } catch (err) {
                 if (!isAuto) {
                     alert.innerText = err.message;
-                    alert.className = 'mt-4 p-3 rounded-xl text-xs text-center bg-rose-500/10 border border-rose-500/30 text-rose-400 block';
+                    alert.className = 'mt-4 p-3 rounded-xl text-xs text-center bg-rose-500/10 border border-rose-500/30 text-rose-400 block break-words';
                 } else {
                     localStorage.removeItem('dfuture_student_code');
                 }
             }
         }
 
-        // Load Subjects
         async function loadSubjects() {
             const container = document.getElementById('subjectsList');
             const { data: subjects, error } = await db.from('subjects').select('*');
@@ -208,7 +208,6 @@
             `).join('');
         }
 
-        // Switch Dashboard Tabs
         function switchTab(tab) {
             const subTab = document.getElementById('tabSubjectsContent');
             const quizTab = document.getElementById('tabQuizContent');
