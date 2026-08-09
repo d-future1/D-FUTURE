@@ -114,7 +114,8 @@
 
     <!-- Supabase Connection & App Logic -->
     <script>
-        const SUPABASE_URL = 'https://buzhgwizndbczmztfsp.supabase.co';
+        // الرابط المصحح بدقة 100%
+        const SUPABASE_URL = 'https://buzhgwihzndbczmztfsp.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emhnd2loem5kYmN6bXp0ZnNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyOTkwNjksImV4cCI6MjEwMTg3NTA2OX0.1tdXOa9wamfW3hBwdaTTpNK9U1g5G4Mqf2hwAe1Ojec';
 
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -146,7 +147,7 @@
 
         async function verifyAndLogin(code, isAuto) {
             const alert = document.getElementById('activationAlert');
-            const cleanCode = code.trim().toUpperCase(); // تحويل التلقائي للأحرف الكبيرة
+            const cleanCode = code.trim().toUpperCase();
 
             try {
                 const { data, error } = await db
