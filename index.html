@@ -12,31 +12,44 @@
         .glass { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1); }
     </style>
 </head>
-<body class="min-h-screen">
-    <div id="app" class="max-w-md mx-auto p-4 mt-10">
-        <!-- Login -->
-        <div id="loginSection" class="glass p-6 rounded-2xl">
-            <h2 class="text-center font-bold mb-6 text-xl">D-FUTURE</h2>
-            <input type="password" id="loginInput" placeholder="أدخل الرمز" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-center mb-4 text-cyan-400">
-            <button onclick="auth()" class="w-full bg-cyan-600 py-3 rounded-xl font-bold">دخول</button>
+<body class="min-h-screen p-4">
+    <div id="app" class="max-w-md mx-auto mt-10">
+        
+        <!-- Login Section -->
+        <div id="loginSection" class="glass p-6 rounded-2xl shadow-2xl">
+            <div class="text-center mb-6">
+                <div class="text-3xl mb-2">🦷</div>
+                <h2 class="font-bold text-lg text-white">D-FUTURE</h2>
+                <p class="text-xs text-slate-400">أدخل رمز التفعيل الخاص بك</p>
+            </div>
+            <input type="password" id="loginInput" placeholder="أدخل الرمز هنا" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-center mb-4 text-cyan-400 tracking-widest outline-none focus:border-cyan-500">
+            <button onclick="auth()" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 py-3 rounded-xl font-bold text-sm shadow-lg">دخول المنصة</button>
+            <p id="loginMsg" class="text-center text-xs text-rose-400 mt-3 hidden"></p>
         </div>
 
-        <!-- Dashboard (Dynamic) -->
+        <!-- Main Dashboard Section -->
         <div id="mainDashboard" class="hidden space-y-4">
-            <div class="flex justify-between items-center mb-6">
-                <h2 id="welcomeText" class="font-bold"></h2>
-                <button onclick="logout()" class="text-xs text-rose-400">خروج</button>
+            <div class="glass p-4 rounded-xl flex justify-between items-center">
+                <div>
+                    <h2 id="welcomeText" class="font-bold text-sm text-white"></h2>
+                    <p class="text-[10px] text-cyan-400">المرحلة الخامسة - طب الأسنان</p>
+                </div>
+                <button onclick="logout()" class="text-xs bg-rose-500/10 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-lg">خروج</button>
             </div>
             
-            <div id="adminPanel" class="hidden glass p-4 rounded-xl mb-4 border-cyan-500/30">
-                <h3 class="text-xs text-cyan-400 mb-2 font-bold uppercase tracking-widest">لوحة التحكم الإدارية</h3>
+            <!-- Admin Control Panel -->
+            <div id="adminPanel" class="hidden glass p-4 rounded-xl border-cyan-500/40 space-y-3">
+                <h3 class="text-xs text-cyan-400 font-bold uppercase tracking-wider"><i class="fa-solid fa-shield-halved mr-1"></i> لوحة التحكم الإدارية</h3>
                 <div class="space-y-2">
-                    <input id="newStd" placeholder="اسم الطالب" class="w-full bg-slate-900 p-2 rounded text-xs">
-                    <button onclick="addStudent()" class="w-full bg-emerald-600 py-2 rounded text-xs">إضافة طالب وتوليد كود</button>
+                    <input id="newStd" placeholder="اسم الطالب الثلاثي" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg text-xs text-white outline-none">
+                    <button onclick="addStudent()" class="w-full bg-emerald-600 hover:bg-emerald-700 py-2 rounded-lg text-xs font-medium transition">إضافة طالب وتوليد كود جديد</button>
                 </div>
             </div>
 
-            <div id="contentList" class="space-y-3"></div>
+            <!-- Content Container -->
+            <div id="contentList" class="space-y-3">
+                <div class="glass p-4 rounded-xl text-center text-xs text-slate-400">جاري تحميل البيانات...</div>
+            </div>
         </div>
     </div>
 
@@ -45,61 +58,139 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emhnd2loem5kYmN6bXp0ZnNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyOTkwNjksImV4cCI6MjEwMTg3NTA2OX0.1tdXOa9wamfW3hBwdaTTpNK9U1g5G4Mqf2hwAe1Ojec';
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedSession = localStorage.getItem('df_session');
+            if (savedSession) {
+                if (savedSession === 'ADMIN') {
+                    showDashboard(true);
+                } else {
+                    verifyStudentSession(savedSession);
+                }
+            }
+        });
+
         async function auth() {
             const input = document.getElementById('loginInput').value.trim().toUpperCase();
+            const msg = document.getElementById('loginMsg');
+            msg.classList.add('hidden');
+
+            if (!input) return;
+
             if (input === 'ADMIN-DFUTURE-2026') {
+                localStorage.setItem('df_session', 'ADMIN');
                 showDashboard(true);
+                return;
+            }
+
+            const { data, error } = await db.from('subscription_codes').select('*').eq('code', input).maybeSingle();
+
+            if (error || !data) {
+                msg.innerText = 'رمز التفعيل غير صحيح أو حدث خطأ في الاتصال.';
+                msg.classList.remove('hidden');
+                return;
+            }
+
+            localStorage.setItem('df_session', input);
+            showDashboard(false, data.student_name);
+        }
+
+        async function verifyStudentSession(code) {
+            const { data } = await db.from('subscription_codes').select('*').eq('code', code).maybeSingle();
+            if (data) {
+                showDashboard(false, data.student_name);
             } else {
-                const { data } = await db.from('subscription_codes').select('*').eq('code', input).maybeSingle();
-                if (data) {
-                    localStorage.setItem('user', JSON.stringify(data));
-                    showDashboard(false);
-                } else { alert('رمز خاطئ'); }
+                logout();
             }
         }
 
-        async function showDashboard(isAdmin) {
+        async function showDashboard(isAdmin, studentName = '') {
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('mainDashboard').classList.remove('hidden');
             
             if (isAdmin) {
                 document.getElementById('adminPanel').classList.remove('hidden');
-                document.getElementById('welcomeText').innerText = "مرحباً د. أمير (المدير)";
+                document.getElementById('welcomeText').innerText = "مرحباً د. أمير (المدير العام)";
                 loadAdminData();
             } else {
-                document.getElementById('welcomeText').innerText = "مرحباً بك في المنهج";
+                document.getElementById('welcomeText').innerText = "مرحباً بك، " + (studentName || 'طالب');
                 loadSubjects();
             }
         }
 
         async function loadSubjects() {
-            const { data } = await db.from('subjects').select('*');
-            document.getElementById('contentList').innerHTML = data.map(s => `
-                <div class="glass p-4 rounded-xl flex justify-between items-center">
-                    <div><h4 class="font-bold text-sm">${s.title}</h4><p class="text-[10px] text-slate-500">${s.description}</p></div>
-                    <i class="fa fa-chevron-left text-xs text-slate-600"></i>
+            const container = document.getElementById('contentList');
+            const { data, error } = await db.from('subjects').select('*');
+
+            if (error || !data || data.length === 0) {
+                container.innerHTML = `<div class="glass p-4 rounded-xl text-center text-xs text-slate-400">لا توجد مواد دراسية مضافة حالياً.</div>`;
+                return;
+            }
+
+            container.innerHTML = data.map(s => `
+                <div class="glass p-4 rounded-xl flex justify-between items-center hover:border-cyan-500/50 transition cursor-pointer">
+                    <div>
+                        <h4 class="font-bold text-xs text-white">${s.title}</h4>
+                        <p class="text-[10px] text-slate-400 mt-0.5">${s.description || 'المرحلة الخامسة'}</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-left text-xs text-slate-500"></i>
                 </div>
             `).join('');
         }
 
         async function loadAdminData() {
-            const { data } = await db.from('subscription_codes').select('*');
-            document.getElementById('contentList').innerHTML = data.map(c => `
-                <div class="glass p-3 rounded-lg flex justify-between text-xs">
-                    <span>${c.student_name}</span><span class="text-cyan-400 font-mono">${c.code}</span>
+            const container = document.getElementById('contentList');
+            const { data, error } = await db.from('subscription_codes').select('*').order('created_at', { ascending: false });
+
+            if (error || !data) {
+                container.innerHTML = `<div class="glass p-4 rounded-xl text-center text-xs text-slate-400">لا توجد أكواد مسجلة حالياً.</div>`;
+                return;
+            }
+
+            container.innerHTML = `<h3 class="text-xs font-bold text-slate-300 mb-2">قائمة الأكواد والطلاب (${data.length})</h3>` + data.map(c => `
+                <div class="glass p-3 rounded-xl flex justify-between items-center text-xs">
+                    <div>
+                        <span class="font-bold text-white block">${c.student_name}</span>
+                        <span class="text-[10px] text-cyan-400 font-mono">${c.code}</span>
+                    </div>
+                    <button onclick="deleteCode('${c.code}')" class="text-rose-400 hover:text-rose-300 p-2"><i class="fa-solid fa-trash"></i></button>
                 </div>
             `).join('');
         }
 
         async function addStudent() {
-            const name = document.getElementById('newStd').value;
-            const code = 'DF-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-            await db.from('subscription_codes').insert({ code, student_name: name });
-            alert('تم: ' + code);
-            loadAdminData();
+            const nameInput = document.getElementById('newStd');
+            const name = nameInput.value.trim();
+            if (!name) {
+                alert('الرجاء إدخال اسم الطالب');
+                return;
+            }
+            const randomCode = 'DF-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+            
+            const { error } = await db.from('subscription_codes').insert({ code: randomCode, student_name: name });
+            if (error) {
+                alert('خطأ: ' + error.message);
+            } else {
+                alert('تم إنشاء الكود بنجاح!\nالطالب: ' + name + '\nالكود: ' + randomCode);
+                nameInput.value = '';
+                loadAdminData();
+            }
         }
 
-        function logout() { localStorage.clear(); location.reload(); }
+        async function deleteCode(code) {
+            if (code === 'ADMIN-DFUTURE-2026') {
+                alert('لا يمكن حذف رمز المدير الرئيسي!');
+                return;
+            }
+            if (confirm('هل أنت متأكد من حذف هذا الكود؟')) {
+                await db.from('subscription_codes').delete().eq('code', code);
+                loadAdminData();
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            location.reload();
+        }
     </script>
 </body>
 </html>
