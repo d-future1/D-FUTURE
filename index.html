@@ -2,84 +2,80 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D-FUTURE | المنصة الأكاديمية المتكاملة</title>
+    <title>D-FUTURE | لوحة التحكم</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body { background-color: #020617; color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-    </style>
+    <style>body { background: #020617; color: #e2e8f0; }</style>
 </head>
-<body class="min-h-screen pb-10">
+<body class="p-4">
+    <!-- شاشة الدخول -->
+    <section id="loginScreen" class="max-w-sm mx-auto mt-20 bg-slate-900 p-6 rounded-2xl border border-slate-800">
+        <h2 class="text-center font-bold mb-4">دخول D-FUTURE</h2>
+        <input type="password" id="codeInput" placeholder="أدخل الرمز" class="w-full bg-slate-950 p-3 rounded-lg mb-3 text-center tracking-widest outline-none border border-slate-700">
+        <button onclick="login()" class="w-full bg-cyan-600 py-3 rounded-lg font-bold">دخول</button>
+    </section>
 
-    <!-- Header -->
-    <header class="glass sticky top-0 z-50 border-b border-slate-800">
-        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-xl">🦷</div>
-                <div>
-                    <h1 class="font-bold text-lg text-white">D-FUTURE</h1>
-                    <p class="text-[10px] text-cyan-400">المرجع الأكاديمي - المرحلة الخامسة</p>
-                </div>
-            </div>
-            <div id="userBadge" class="hidden text-[10px] bg-slate-800 px-3 py-1 rounded-full text-emerald-400">
-                <i class="fa-solid fa-circle-check mr-1"></i> مفعل
-            </div>
+    <!-- لوحة الطالب -->
+    <section id="studentDashboard" class="hidden max-w-2xl mx-auto mt-10">
+        <h2 class="text-xl font-bold mb-4">مرحباً بك في المنهج</h2>
+        <div id="subjectsList" class="grid grid-cols-1 gap-3"></div>
+    </section>
+
+    <!-- لوحة الإدارة (تظهر فقط عند دخول رمز المدير) -->
+    <section id="adminDashboard" class="hidden max-w-2xl mx-auto mt-10 p-6 bg-slate-800 rounded-xl border-2 border-cyan-500">
+        <h2 class="text-2xl font-bold text-cyan-400 mb-4">لوحة تحكم المدير</h2>
+        <div class="flex gap-2">
+            <input type="text" id="newStudentName" placeholder="اسم الطالب" class="flex-1 bg-slate-900 p-2 rounded">
+            <button onclick="generateCode()" class="bg-emerald-600 px-4 py-2 rounded">توليد كود</button>
         </div>
-    </header>
-
-    <main class="max-w-4xl mx-auto px-4 mt-6">
-        <!-- Login -->
-        <section id="loginScreen" class="max-w-md mx-auto glass p-8 rounded-2xl mt-10 text-center">
-            <h2 class="text-xl font-bold mb-6">دخول المنصة الأكاديمية</h2>
-            <input type="text" id="code" placeholder="أدخل رمز التفعيل" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-center uppercase tracking-widest mb-4 focus:border-cyan-500 outline-none">
-            <button onclick="login()" class="w-full bg-cyan-600 py-3 rounded-xl font-bold">دخول</button>
-            <p id="error" class="text-rose-400 text-xs mt-4 hidden"></p>
-        </section>
-
-        <!-- Main Dashboard -->
-        <section id="dashboard" class="hidden space-y-6">
-            <div id="subjectsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-        </section>
-    </main>
+        <div id="codesList" class="mt-6 space-y-2"></div>
+    </section>
 
     <script>
         const SUPABASE_URL = 'https://buzhgwihzndbczmztfsp.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emhnd2loem5kYmN6bXp0ZnNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyOTkwNjksImV4cCI6MjEwMTg3NTA2OX0.1tdXOa9wamfW3hBwdaTTpNK9U1g5G4Mqf2hwAe1Ojec';
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const subjects = [
-            "جراحة الفم والوجه والفكين", "تقويم الأسنان", "طب أسنان الأطفال", 
-            "علاج الجذور واللثة", "الاستعاضة السنية", "طب الفم والتشخيص", 
-            "أمراض الفم", "طب الأسنان الوقائي والمجتمعي"
-        ];
-
         async function login() {
-            const code = document.getElementById('code').value.trim().toUpperCase();
-            const { data, error } = await db.from('subscription_codes').select('*').eq('code', code).maybeSingle();
+            const code = document.getElementById('codeInput').value.trim().toUpperCase();
             
+            // 1. فحص هل هو المدير؟
+            if (code === 'ADMIN-DFUTURE-2026') {
+                showAdminPanel();
+                return;
+            }
+
+            // 2. فحص هل هو طالب؟
+            const { data } = await db.from('subscription_codes').select('*').eq('code', code).maybeSingle();
             if (data) {
                 document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('dashboard').classList.remove('hidden');
-                document.getElementById('userBadge').classList.remove('hidden');
-                renderSubjects();
+                document.getElementById('studentDashboard').classList.remove('hidden');
+                document.getElementById('subjectsList').innerHTML = `<p class="p-4 bg-slate-800 rounded">مرحباً ${data.student_name}، جاري عرض المحتوى...</p>`;
             } else {
-                document.getElementById('error').innerText = "رمز غير صحيح";
-                document.getElementById('error').classList.remove('hidden');
+                alert('رمز غير صحيح');
             }
         }
 
-        function renderSubjects() {
-            const grid = document.getElementById('subjectsGrid');
-            grid.innerHTML = subjects.map(s => `
-                <div class="glass p-5 rounded-xl hover:border-cyan-500 cursor-pointer transition">
-                    <h3 class="font-bold text-white mb-2">${s}</h3>
-                    <div class="flex gap-2">
-                        <span class="text-[10px] bg-slate-800 px-2 py-1 rounded">ملازم</span>
-                        <span class="text-[10px] bg-slate-800 px-2 py-1 rounded">أسئلة</span>
-                    </div>
+        async function generateCode() {
+            const name = document.getElementById('newStudentName').value;
+            const newCode = 'DFUTURE-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+            await db.from('subscription_codes').insert({ code: newCode, student_name: name });
+            alert('تم إنشاء كود للطالب: ' + newCode);
+            loadCodes();
+        }
+
+        async function showAdminPanel() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.remove('hidden');
+            loadCodes();
+        }
+
+        async function loadCodes() {
+            const { data } = await db.from('subscription_codes').select('*');
+            document.getElementById('codesList').innerHTML = data.map(c => `
+                <div class="flex justify-between bg-slate-900 p-2 rounded">
+                    <span>${c.student_name}</span>
+                    <span class="font-mono text-cyan-400">${c.code}</span>
                 </div>
             `).join('');
         }
