@@ -3,229 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D-FUTURE | منصة طب الأسنان الأكاديمية</title>
-    <!-- Tailwind CSS CDN -->
+    <title>D-FUTURE | المنصة الأكاديمية المتكاملة</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS Client CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .watermark-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 9999;
-            opacity: 0.03;
-            background: repeating-linear-gradient(45deg, #000, #000 100px, transparent 100px, transparent 200px);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.8rem; font-weight: bold; color: #fff;
-            user-select: none;
-        }
+        body { background-color: #020617; color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans pb-10">
+<body class="min-h-screen pb-10">
 
-    <!-- Watermark for Security -->
-    <div id="watermark" class="watermark-overlay hidden">D-FUTURE PROTECTED CONTENT</div>
-
-    <!-- Top Navigation Bar -->
-    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-md">
+    <!-- Header -->
+    <header class="glass sticky top-0 z-50 border-b border-slate-800">
         <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-xl shadow-lg shadow-cyan-500/20">
-                    🦷
-                </div>
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-xl">🦷</div>
                 <div>
-                    <h1 class="font-bold text-lg text-white tracking-wide">D-FUTURE</h1>
-                    <p class="text-xs text-cyan-400">المرجع الأكاديمي لطب الأسنان</p>
+                    <h1 class="font-bold text-lg text-white">D-FUTURE</h1>
+                    <p class="text-[10px] text-cyan-400">المرجع الأكاديمي - المرحلة الخامسة</p>
                 </div>
             </div>
-            <div id="userInfo" class="hidden text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-full flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span id="studentNameDisplay" class="text-slate-300">الطالب</span>
+            <div id="userBadge" class="hidden text-[10px] bg-slate-800 px-3 py-1 rounded-full text-emerald-400">
+                <i class="fa-solid fa-circle-check mr-1"></i> مفعل
             </div>
         </div>
     </header>
 
-    <!-- App Main Container -->
     <main class="max-w-4xl mx-auto px-4 mt-6">
-
-        <!-- 1. ACTIVATION SCREEN (LOGIN WITH CODE) -->
-        <section id="activationScreen" class="max-w-md mx-auto bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-2xl mt-10">
-            <div class="text-center mb-6">
-                <div class="inline-block p-3 rounded-full bg-cyan-500/10 text-cyan-400 text-2xl mb-3">🔑</div>
-                <h2 class="text-xl font-bold text-white">تفعيل الاشتراك الأكاديمي</h2>
-                <p class="text-xs text-slate-400 mt-1">أدخل رمز التفعيل الخاص بك للوصول للملازم والأسئلة</p>
-            </div>
-            <form id="activationForm" onsubmit="handleActivation(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">رمز التفعيل (Activation Code)</label>
-                    <input type="text" id="activationCodeInput" required placeholder="DFUTURE-2026-ADMIN" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyan-500 text-center uppercase tracking-widest font-mono text-cyan-400">
-                </div>
-                <button type="submit" id="btnActivate" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-medium py-3 rounded-xl shadow-lg shadow-cyan-500/25 text-sm transition">
-                    دخول المنصة
-                </button>
-            </form>
-            <div id="activationAlert" class="hidden mt-4 p-3 rounded-xl text-xs text-center break-words"></div>
+        <!-- Login -->
+        <section id="loginScreen" class="max-w-md mx-auto glass p-8 rounded-2xl mt-10 text-center">
+            <h2 class="text-xl font-bold mb-6">دخول المنصة الأكاديمية</h2>
+            <input type="text" id="code" placeholder="أدخل رمز التفعيل" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-center uppercase tracking-widest mb-4 focus:border-cyan-500 outline-none">
+            <button onclick="login()" class="w-full bg-cyan-600 py-3 rounded-xl font-bold">دخول</button>
+            <p id="error" class="text-rose-400 text-xs mt-4 hidden"></p>
         </section>
 
-        <!-- 2. MAIN DASHBOARD SCREEN (HIDDEN BY DEFAULT) -->
-        <section id="dashboardScreen" class="hidden space-y-6">
-            
-            <!-- Navigation Tabs -->
-            <div class="flex border-b border-slate-800 gap-2 overflow-x-auto pb-1">
-                <button onclick="switchTab('subjects')" id="tabBtnSubjects" class="px-4 py-2 text-sm font-medium border-b-2 border-cyan-400 text-cyan-400 flex items-center gap-2">
-                    <i class="fa-solid fa-book-open"></i> المواد والملازم
-                </button>
-                <button onclick="switchTab('quiz')" id="tabBtnQuiz" class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2">
-                    <i class="fa-solid fa-list-check"></i> بنك الأسئلة
-                </button>
-            </div>
-
-            <!-- TAB 1: SUBJECTS & LECTURES -->
-            <div id="tabSubjectsContent" class="space-y-4">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-base font-semibold text-slate-200">المواد الدراسية (المرحلة الخامسة)</h3>
-                </div>
-                <div id="subjectsList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="p-4 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-500 text-center">
-                        جاري تحميل المواد من قاعدة البيانات...
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 2: QUIZ & QUESTIONS BANK -->
-            <div id="tabQuizContent" class="hidden space-y-4">
-                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                    <h3 class="text-base font-semibold text-slate-200 mb-2">الاختبارات التفاعلية</h3>
-                    <p class="text-xs text-slate-400">اختر المادة والتقييم لبدء حل الأسئلة وتتبع مستواك الأكاديمي.</p>
-                </div>
-                <div id="questionsContainer" class="space-y-4">
-                    <div class="p-6 bg-slate-900 border border-slate-800 rounded-xl text-center text-slate-400 text-xs">
-                        لا توجد أسئلة مضافة حالياً.
-                    </div>
-                </div>
-            </div>
-
+        <!-- Main Dashboard -->
+        <section id="dashboard" class="hidden space-y-6">
+            <div id="subjectsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         </section>
-
     </main>
 
-    <!-- Supabase Connection & App Logic -->
     <script>
-        // الرابط المصحح بدقة 100%
         const SUPABASE_URL = 'https://buzhgwihzndbczmztfsp.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emhnd2loem5kYmN6bXp0ZnNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyOTkwNjksImV4cCI6MjEwMTg3NTA2OX0.1tdXOa9wamfW3hBwdaTTpNK9U1g5G4Mqf2hwAe1Ojec';
-
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let currentUser = null;
+        const subjects = [
+            "جراحة الفم والوجه والفكين", "تقويم الأسنان", "طب أسنان الأطفال", 
+            "علاج الجذور واللثة", "الاستعاضة السنية", "طب الفم والتشخيص", 
+            "أمراض الفم", "طب الأسنان الوقائي والمجتمعي"
+        ];
 
-        window.addEventListener('DOMContentLoaded', async () => {
-            const savedCode = localStorage.getItem('dfuture_student_code');
-            if (savedCode) {
-                await verifyAndLogin(savedCode, true);
-            }
-        });
-
-        async function handleActivation(e) {
-            e.preventDefault();
-            const rawCode = document.getElementById('activationCodeInput').value;
-            const btn = document.getElementById('btnActivate');
-            const alert = document.getElementById('activationAlert');
-
-            btn.disabled = true;
-            btn.innerText = 'جاري التحقق...';
-            alert.classList.add('hidden');
-
-            await verifyAndLogin(rawCode, false);
-
-            btn.disabled = false;
-            btn.innerText = 'دخول المنصة';
-        }
-
-        async function verifyAndLogin(code, isAuto) {
-            const alert = document.getElementById('activationAlert');
-            const cleanCode = code.trim().toUpperCase();
-
-            try {
-                const { data, error } = await db
-                    .from('subscription_codes')
-                    .select('*')
-                    .eq('code', cleanCode)
-                    .maybeSingle();
-
-                if (error) {
-                    throw new Error('Supabase Error: ' + error.message);
-                }
-
-                if (!data) {
-                    throw new Error('رمز التفعيل غير صحيح أو غير موجود (' + cleanCode + ')');
-                }
-
-                currentUser = data;
-                localStorage.setItem('dfuture_student_code', cleanCode);
-
-                // Update UI
-                document.getElementById('activationScreen').classList.add('hidden');
-                document.getElementById('dashboardScreen').classList.remove('hidden');
-                document.getElementById('userInfo').classList.remove('hidden');
-                document.getElementById('studentNameDisplay').innerText = data.student_name || 'طالب مفعل';
-                document.getElementById('watermark').classList.remove('hidden');
-
-                loadSubjects();
-
-            } catch (err) {
-                if (!isAuto) {
-                    alert.innerText = err.message;
-                    alert.className = 'mt-4 p-3 rounded-xl text-xs text-center bg-rose-500/10 border border-rose-500/30 text-rose-400 block break-words';
-                } else {
-                    localStorage.removeItem('dfuture_student_code');
-                }
+        async function login() {
+            const code = document.getElementById('code').value.trim().toUpperCase();
+            const { data, error } = await db.from('subscription_codes').select('*').eq('code', code).maybeSingle();
+            
+            if (data) {
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                document.getElementById('userBadge').classList.remove('hidden');
+                renderSubjects();
+            } else {
+                document.getElementById('error').innerText = "رمز غير صحيح";
+                document.getElementById('error').classList.remove('hidden');
             }
         }
 
-        async function loadSubjects() {
-            const container = document.getElementById('subjectsList');
-            const { data: subjects, error } = await db.from('subjects').select('*');
-
-            if (error || !subjects || subjects.length === 0) {
-                container.innerHTML = `
-                    <div class="col-span-2 p-6 bg-slate-900 border border-slate-800 rounded-xl text-center text-slate-400 text-xs">
-                        لا توجد مواد دراسية مضافة حالياً في قاعدة البيانات.
-                    </div>`;
-                return;
-            }
-
-            container.innerHTML = subjects.map(s => `
-                <div class="p-4 bg-slate-900 border border-slate-800 hover:border-cyan-500/50 rounded-xl transition cursor-pointer flex justify-between items-center">
-                    <div>
-                        <h4 class="font-bold text-sm text-white">${s.title}</h4>
-                        <span class="text-[10px] text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full mt-1 inline-block">المرحلة ${s.stage || 5}</span>
+        function renderSubjects() {
+            const grid = document.getElementById('subjectsGrid');
+            grid.innerHTML = subjects.map(s => `
+                <div class="glass p-5 rounded-xl hover:border-cyan-500 cursor-pointer transition">
+                    <h3 class="font-bold text-white mb-2">${s}</h3>
+                    <div class="flex gap-2">
+                        <span class="text-[10px] bg-slate-800 px-2 py-1 rounded">ملازم</span>
+                        <span class="text-[10px] bg-slate-800 px-2 py-1 rounded">أسئلة</span>
                     </div>
-                    <i class="fa-solid fa-chevron-left text-slate-500 text-xs"></i>
                 </div>
             `).join('');
-        }
-
-        function switchTab(tab) {
-            const subTab = document.getElementById('tabSubjectsContent');
-            const quizTab = document.getElementById('tabQuizContent');
-            const btnSub = document.getElementById('tabBtnSubjects');
-            const btnQuiz = document.getElementById('tabBtnQuiz');
-
-            if (tab === 'subjects') {
-                subTab.classList.remove('hidden');
-                quizTab.classList.add('hidden');
-                btnSub.className = 'px-4 py-2 text-sm font-medium border-b-2 border-cyan-400 text-cyan-400 flex items-center gap-2';
-                btnQuiz.className = 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2';
-            } else {
-                subTab.classList.add('hidden');
-                quizTab.classList.remove('hidden');
-                btnQuiz.className = 'px-4 py-2 text-sm font-medium border-b-2 border-cyan-400 text-cyan-400 flex items-center gap-2';
-                btnSub.className = 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2';
-            }
         }
     </script>
 </body>
