@@ -15,28 +15,31 @@
 <body class="min-h-screen p-4">
 
     <!-- شاشة الدخول -->
-    <div id="loginSection" class="max-w-md mx-auto mt-10 glass p-6 rounded-2xl shadow-2xl">
-        <h2 class="text-center font-bold text-xl mb-6 text-white">تسجيل الدخول</h2>
-        <input type="password" id="passInput" placeholder="أدخل الرمز" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-center mb-4 text-cyan-400 outline-none">
-        <button onclick="login()" class="w-full bg-cyan-600 py-3 rounded-xl font-bold text-white">دخول</button>
+    <div id="loginSection" class="max-w-md mx-auto mt-16 glass p-6 rounded-2xl shadow-2xl">
+        <div class="text-center mb-6">
+            <div class="text-3xl mb-2">🦷</div>
+            <h2 class="font-bold text-lg text-white">تسجيل الدخول للمنصة</h2>
+        </div>
+        <input type="password" id="passInput" placeholder="أدخل الرمز" class="w-full bg-slate-900 border border-slate-700 p-3 rounded-xl text-center mb-4 text-cyan-400 outline-none tracking-widest">
+        <button onclick="login()" class="w-full bg-cyan-600 hover:bg-cyan-700 py-3 rounded-xl font-bold text-white transition">دخول</button>
     </div>
 
     <!-- اللوحة الرئيسية -->
     <div id="app" class="hidden max-w-md mx-auto mt-6 space-y-4">
         <div class="glass p-4 rounded-xl flex justify-between items-center">
-            <h2 id="welcomeTitle" class="font-bold text-sm">مرحباً</h2>
-            <button onclick="location.reload()" class="text-xs bg-rose-500/10 text-rose-500 px-3 py-1 rounded">خروج</button>
+            <h2 id="welcomeTitle" class="font-bold text-sm text-white">مرحباً</h2>
+            <button onclick="location.reload()" class="text-xs bg-rose-500/10 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-lg">خروج</button>
         </div>
 
-        <!-- لوحة تحكم المدير (تظهر للمدير فقط) -->
+        <!-- لوحة تحكم المدير -->
         <div id="adminPanel" class="hidden space-y-3">
             <div class="grid grid-cols-3 gap-2">
-                <button onclick="showTab('students')" class="bg-slate-800 p-2 rounded text-[10px]">الطلاب</button>
-                <button onclick="showTab('subjects')" class="bg-slate-800 p-2 rounded text-[10px]">المواد</button>
-                <button onclick="showTab('materials')" class="bg-slate-800 p-2 rounded text-[10px]">الملازم</button>
+                <button onclick="showTab('students')" id="btnStd" class="bg-cyan-600 p-2 rounded-xl text-xs font-bold text-white">الطلاب</button>
+                <button onclick="showTab('subjects')" id="btnSub" class="bg-slate-800 p-2 rounded-xl text-xs font-bold text-slate-300">المواد</button>
+                <button onclick="showTab('materials')" id="btnMat" class="bg-slate-800 p-2 rounded-xl text-xs font-bold text-slate-300">الملازم</button>
             </div>
             <div id="adminForms" class="glass p-4 rounded-xl space-y-3">
-                <!-- يتم حقن النماذج هنا بواسطة JS -->
+                <!-- نماذج الإدارة -->
             </div>
         </div>
 
@@ -46,35 +49,53 @@
     <script>
         const SUPABASE_URL = 'https://buzhgwihzndbczmztfsp.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1emhnd2loem5kYmN6bXp0ZnNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyOTkwNjksImV4cCI6MjEwMTg3NTA2OX0.1tdXOa9wamfW3hBwdaTTpNK9U1g5G4Mqf2hwAe1Ojec';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         let isAdmin = false;
 
         async function login() {
-            const val = document.getElementById('passInput').value.trim().toUpperCase();
-            if(val === 'ADMIN-DFUTURE-2026') {
-                isAdmin = true;
-                showDashboard("المدير العام");
-                renderAdminUI();
-            } else {
-                const { data } = await supabase.from('subscription_codes').select('*').eq('code', val).maybeSingle();
-                if(data) {
+            try {
+                const inputVal = document.getElementById('passInput').value.trim().toUpperCase();
+                
+                if (!inputVal) {
+                    alert('الرجاء إدخال الرمز أولاً');
+                    return;
+                }
+
+                // فحص رمز المدير
+                if (inputVal === 'ADMIN-DFUTURE-2026') {
+                    isAdmin = true;
+                    showDashboard("المدير العام");
+                    renderAdminUI();
+                    return;
+                }
+
+                // فحص كود الطالب من قاعدة البيانات
+                const { data, error } = await db.from('subscription_codes').select('*').eq('code', inputVal).maybeSingle();
+
+                if (error) {
+                    alert('خطأ في الاتصال بقاعدة البيانات: ' + error.message);
+                    return;
+                }
+
+                if (data) {
                     isAdmin = false;
                     showDashboard(data.student_name);
                     renderStudentUI();
                 } else {
-                    alert('رمز خاطئ');
+                    alert('الرمز غير صحيح، يرجى التأكد منه.');
                 }
+            } catch (err) {
+                alert('حدث خطأ غير متوقع: ' + err.message);
             }
         }
 
         function showDashboard(name) {
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('app').classList.remove('hidden');
-            document.getElementById('welcomeTitle').innerText = "مرحباً " + name;
+            document.getElementById('welcomeTitle').innerText = "مرحباً، " + name;
         }
 
-        // === إدارة المدير ===
         function renderAdminUI() {
             document.getElementById('adminPanel').classList.remove('hidden');
             showTab('students');
@@ -83,55 +104,87 @@
         async function showTab(tab) {
             const forms = document.getElementById('adminForms');
             const list = document.getElementById('contentList');
-            list.innerHTML = "";
+            list.innerHTML = `<div class="glass p-4 rounded-xl text-center text-xs text-slate-400">جاري التحميل...</div>`;
 
-            if(tab === 'students') {
+            if (tab === 'students') {
                 forms.innerHTML = `
-                    <input id="stdName" placeholder="اسم الطالب" class="w-full bg-slate-900 p-2 rounded text-xs text-white">
-                    <button onclick="addStudent()" class="w-full bg-emerald-600 py-2 rounded text-xs">إضافة طالب</button>`;
-                const { data } = await supabase.from('subscription_codes').select('*');
-                list.innerHTML = data.map(s => `<div class="glass p-3 rounded flex justify-between"><span>${s.student_name}</span><span class="text-cyan-400 font-mono">${s.code}</span></div>`).join('');
-            } else if(tab === 'subjects') {
+                    <h3 class="text-xs font-bold text-cyan-400">إضافة طالب وتوليد كود</h3>
+                    <input id="stdName" placeholder="اسم الطالب الثلاثي" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg text-xs text-white outline-none">
+                    <button onclick="addStudent()" class="w-full bg-emerald-600 hover:bg-emerald-700 py-2 rounded-lg text-xs font-medium text-white">توليد الكود</button>`;
+                
+                const { data } = await db.from('subscription_codes').select('*').order('created_at', { ascending: false });
+                list.innerHTML = `<h3 class="text-xs font-bold text-slate-300">قائمة الطلاب</h3>` + (data || []).map(s => `
+                    <div class="glass p-3 rounded-xl flex justify-between items-center text-xs">
+                        <span class="text-white font-bold">${s.student_name}</span>
+                        <span class="text-cyan-400 font-mono">${s.code}</span>
+                    </div>`).join('');
+            } else if (tab === 'subjects') {
                 forms.innerHTML = `
-                    <input id="subTitle" placeholder="اسم المادة" class="w-full bg-slate-900 p-2 rounded text-xs text-white">
-                    <button onclick="addSubject()" class="w-full bg-blue-600 py-2 rounded text-xs">إضافة مادة</button>`;
-                const { data } = await supabase.from('subjects').select('*');
-                list.innerHTML = data.map(s => `<div class="glass p-3 rounded flex justify-between"><span>${s.title}</span></div>`).join('');
-            } else if(tab === 'materials') {
+                    <h3 class="text-xs font-bold text-cyan-400">إضافة مادة دراسية</h3>
+                    <input id="subTitle" placeholder="اسم المادة" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg text-xs text-white outline-none">
+                    <button onclick="addSubject()" class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-lg text-xs font-medium text-white">حفظ المادة</button>`;
+                
+                const { data } = await db.from('subjects').select('*');
+                list.innerHTML = `<h3 class="text-xs font-bold text-slate-300">المواد المضافة</h3>` + (data || []).map(s => `
+                    <div class="glass p-3 rounded-xl text-xs text-white font-bold">${s.title}</div>`).join('');
+            } else if (tab === 'materials') {
                 forms.innerHTML = `
-                    <input id="matTitle" placeholder="عنوان الملزمة" class="w-full bg-slate-900 p-2 rounded text-xs text-white">
-                    <input id="matUrl" placeholder="الرابط" class="w-full bg-slate-900 p-2 rounded text-xs text-white">
-                    <button onclick="addMat()" class="w-full bg-purple-600 py-2 rounded text-xs">إضافة ملزمة</button>`;
-                const { data } = await supabase.from('materials').select('*');
-                list.innerHTML = data.map(m => `<div class="glass p-3 rounded"><span>${m.title}</span></div>`).join('');
+                    <h3 class="text-xs font-bold text-cyan-400">إضافة ملزمة أو ملخص</h3>
+                    <input id="matTitle" placeholder="عنوان الملزمة" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg text-xs text-white outline-none">
+                    <input id="matUrl" placeholder="رابط الملف" class="w-full bg-slate-900 border border-slate-700 p-2.5 rounded-lg text-xs text-white outline-none">
+                    <button onclick="addMat()" class="w-full bg-purple-600 hover:bg-purple-700 py-2 rounded-lg text-xs font-medium text-white">إضافة الملزمة</button>`;
+                
+                const { data } = await db.from('materials').select('*');
+                list.innerHTML = `<h3 class="text-xs font-bold text-slate-300">الملازم المرفوعة</h3>` + (data || []).map(m => `
+                    <div class="glass p-3 rounded-xl flex justify-between items-center text-xs">
+                        <span class="text-white font-bold">${m.title}</span>
+                        <a href="${m.file_url}" target="_blank" class="text-cyan-400 underline">فتح الرابط</a>
+                    </div>`).join('');
             }
         }
 
         async function addStudent() {
-            const name = document.getElementById('stdName').value;
+            const name = document.getElementById('stdName').value.trim();
+            if (!name) return alert('أدخل اسم الطالب');
             const code = 'DF-' + Math.random().toString(36).substring(2,8).toUpperCase();
-            await supabase.from('subscription_codes').insert({student_name: name, code: code});
-            alert('تم: ' + code); showTab('students');
+            const { error } = await db.from('subscription_codes').insert({student_name: name, code: code});
+            if (!error) {
+                alert('تم إنشاء الكود بنجاح: ' + code);
+                showTab('students');
+            } else {
+                alert('خطأ: ' + error.message);
+            }
         }
 
         async function addSubject() {
-            const title = document.getElementById('subTitle').value;
-            await supabase.from('subjects').insert({title: title});
-            showTab('subjects');
+            const title = document.getElementById('subTitle').value.trim();
+            if (!title) return alert('أدخل اسم المادة');
+            const { error } = await db.from('subjects').insert({title: title});
+            if (!error) {
+                alert('تمت إضافة المادة');
+                showTab('subjects');
+            } else {
+                alert('خطأ: ' + error.message);
+            }
         }
         
         async function addMat() {
-            const title = document.getElementById('matTitle').value;
-            const url = document.getElementById('matUrl').value;
-            await supabase.from('materials').insert({title: title, file_url: url, subject_id: 1}); // تبسيط
-            showTab('materials');
+            const title = document.getElementById('matTitle').value.trim();
+            const url = document.getElementById('matUrl').value.trim();
+            if (!title || !url) return alert('أدخل العنوان والرابط');
+            const { error } = await db.from('materials').insert({title: title, file_url: url, subject_id: 1});
+            if (!error) {
+                alert('تمت إضافة الملزمة');
+                showTab('materials');
+            } else {
+                alert('خطأ: ' + error.message);
+            }
         }
 
-        // === عرض الطالب ===
         async function renderStudentUI() {
-            const { data } = await supabase.from('subjects').select('*');
-            document.getElementById('contentList').innerHTML = data.map(s => `
-                <div class="glass p-4 rounded-xl cursor-pointer hover:bg-slate-800">${s.title}</div>
+            const { data } = await db.from('subjects').select('*');
+            document.getElementById('contentList').innerHTML = `<h3 class="text-xs font-bold text-slate-300 mb-2">المواد الدراسية</h3>` + (data || []).map(s => `
+                <div class="glass p-4 rounded-xl text-white font-bold text-xs">${s.title}</div>
             `).join('');
         }
     </script>
